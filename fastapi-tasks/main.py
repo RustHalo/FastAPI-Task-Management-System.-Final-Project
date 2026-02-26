@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import FileResponse #for export functionality
 import json
 import os
 from storage import load_tasks, save_tasks
@@ -9,6 +10,7 @@ app = FastAPI()
 #use | for optional description (defaulting to None if user doesn't provide one)
 class Task(BaseModel):
     id: int
+    title: str
     description: str | None= None
     completed: bool = False
 
@@ -78,6 +80,18 @@ def get_task_stats():
         "completion_percentage": round(percentage, 2)
     }
 
+
+#check if file exists to avoid server errors
+@app.get("/tasks/export")
+def export_tasks():
+    if not os.path.exists("tasks.txt"):
+        raise HTTPException(status_code=404, detail="No tasks file available to export")
+    #return file as downladable attachement
+    return FileResponse(
+        path= "tasks.txt",
+        filename= "exported_tasks.json",
+        media_type= "application/json"
+    )
 
 @app.get("/tasks/{task_id}")
 def get_task(task_id: int):
